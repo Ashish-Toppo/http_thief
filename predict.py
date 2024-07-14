@@ -1,14 +1,16 @@
 import pandas as pd
 from scapy.all import sniff, TCP, IP
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
 import joblib
 import sys
 
+# function to print result in a file
+def print_dataframe_to_file(filename, df):
+    with open(filename, 'w') as file:
+        file.write(df.to_string(index=False) + '\n')
+
 # Function to capture TCP packets and extract features using Scapy
-# Function to capture TCP packets and extract features (replace with actual implementation)
-def capture_packets_and_extract_features(packet_count=1000):
+def capture_packets_and_extract_features(packet_count=100):
     packets = sniff(count=packet_count, filter="tcp")  # Capture TCP packets (adjust count as needed)
 
     # Extract features from captured packets
@@ -22,9 +24,8 @@ def capture_packets_and_extract_features(packet_count=1000):
 
     return pd.DataFrame(features)
 
-
-# Function to load trained model and continue training with new data
-def load_and_train_more(model_filename='model/trained_model.pkl', packet_count=1000):
+# Function to load trained model and make predictions on new data
+def load_and_predict(model_filename='trained_model.pkl', packet_count=100):
     # Load the trained model and the preprocessor from file
     try:
         pipeline = joblib.load(model_filename)
@@ -36,17 +37,19 @@ def load_and_train_more(model_filename='model/trained_model.pkl', packet_count=1
     # Capture packets and extract features
     df = capture_packets_and_extract_features(packet_count=packet_count)
 
-    # Prepare data for training
+    # Prepare data for prediction
     X = df.drop(columns=['protocol'])  # Features
-    y = df['protocol']  # Target variable
 
-    # Continue training the model with new data
-    pipeline.fit(X, y)
+    # Make predictions
+    predictions = pipeline.predict(X)
+    df['predicted_protocol'] = predictions
 
-    # Save the updated model and preprocessor
-    joblib.dump(pipeline, model_filename)
-    print(f"Updated model and preprocessor saved as '{model_filename}'.")
+    #print data frame to file
+    print_dataframe_to_file('predictions.csv', df)
+    
+    print("The predictions are printed in the predictions.csv file")
+
 
 # Main function
 if __name__ == "__main__":
-    load_and_train_more(model_filename='model/trained_model.pkl', packet_count=5000)
+    load_and_predict(model_filename='trained_model.pkl', packet_count=100)
